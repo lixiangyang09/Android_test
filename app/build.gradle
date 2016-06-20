@@ -21,6 +21,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile group: 'com.asprise.ocr',name: 'java-ocr-api', version: '[15,)'
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:19.1.0'
 }
