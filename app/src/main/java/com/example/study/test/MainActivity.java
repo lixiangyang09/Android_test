@@ -41,8 +41,14 @@ import android.widget.Toast;
 
 import android.util.DisplayMetrics;
 import android.view.Display;
+import android.hardware.SensorManager;
 
-public class MainActivity extends Activity implements SurfaceHolder.Callback {
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+
+public class MainActivity extends Activity implements SurfaceHolder.Callback, SensorEventListener {
     Camera camera;
     SurfaceView surfaceView;
     SurfaceHolder surfaceHolder;
@@ -50,6 +56,14 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     Camera.PictureCallback rawCallback;
     Camera.ShutterCallback shutterCallback;
     Camera.PictureCallback jpegCallback;
+    // 定义模拟器的Sensor管理器
+    private SensorManager sensorManager;
+    private static final double SHAKE_SHRESHOLD = 7000d;
+    private long lastTime ;
+    private float last_x;
+    private float last_y;
+    private float last_z;
+
 
     int screenWidth, screenHeight;
     AutoFocusCallback autoFocusCallback;
@@ -57,6 +71,8 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+//set sensor
+        sensorManager = (SensorManager) this.getSystemService(this.SENSOR_SERVICE);
 
         //set full screen
         //requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -135,10 +151,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         }
         catch (Exception e) {
         }
-        if (camera != null) {
-            // 控制摄像头自动对焦后才拍摄
-            camera.autoFocus(autoFocusCallback);
-        }
+
     }
 
     @Override
@@ -211,5 +224,37 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
         camera.stopPreview();
         camera.release();
         camera = null;
+    }
+
+
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        // 为系统的加速度传感器注册监听器
+        sensorManager.registerListener(this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                SensorManager.SENSOR_DELAY_GAME);
+    }
+
+    @Override
+    protected void onStop()
+    {
+        // 取消注册
+        sensorManager.unregisterListener(this);
+        super.onStop();
+    }
+
+    public void onSensorChanged(SensorEvent event) {
+        //Toast.makeText(getApplicationContext(),"sensor Changed", Toast.LENGTH_SHORT).show();
+        if (camera != null) {
+            // 控制摄像头自动对焦后才拍摄
+            camera.autoFocus(autoFocusCallback);
+        }
+    }
+
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // TODO Auto-generated method stub
+
     }
 }
