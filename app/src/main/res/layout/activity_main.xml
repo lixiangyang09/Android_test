@@ -37,5 +37,29 @@
             android:layout_height="1000px"
             android:layout_weight="1"/>
 
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/button"
+            android:text="TakePhoto"
+            android:onClick="takePhoto"
+            android:layout_below="@+id/surfaceView"
+            android:layout_centerHorizontal="true" />
 
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/button2"
+            android:text="GetNumber"
+            android:onClick="getNum"
+            android:layout_below="@+id/button"
+            android:layout_centerHorizontal="true" />
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/button3"
+            android:text="button"
+            android:onClick="makeCall"
+            android:layout_below="@+id/button2"
+            android:layout_centerHorizontal="true" />
 </RelativeLayout>

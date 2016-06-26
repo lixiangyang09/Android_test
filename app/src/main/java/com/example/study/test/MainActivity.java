@@ -1,5 +1,13 @@
 package com.example.study.test;
 
+
+
+import java.io.File;
+
+
+
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -9,8 +17,10 @@ import android.content.ClipboardManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.widget.RelativeLayout;
 
 import android.graphics.Bitmap;
+import android.hardware.Camera.Size;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
@@ -48,22 +58,96 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
-public class MainActivity extends Activity implements SurfaceHolder.Callback, SensorEventListener {
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
+import android.hardware.Camera;
+import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.ShutterCallback;
+import android.hardware.Camera.Size;
+import android.os.Bundle;
+import android.os.Environment;
+import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.ImageView;
+
+import java.io.IOException;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
+import android.util.Log;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.zip.GZIPInputStream;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+
+import com.googlecode.tesseract.android.TessBaseAPI;
+
+
+import java.io.IOException;
+
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+public class MainActivity extends Activity implements SurfaceHolder.Callback {
     Camera camera;
     SurfaceView surfaceView;
     SurfaceHolder surfaceHolder;
 
-    Camera.PictureCallback rawCallback;
-    Camera.ShutterCallback shutterCallback;
-    Camera.PictureCallback jpegCallback;
-    // 定义模拟器的Sensor管理器
-    private SensorManager sensorManager;
-    private static final double SHAKE_SHRESHOLD = 7000d;
-    private long lastTime ;
-    private float last_x;
-    private float last_y;
-    private float last_z;
+    Button bt;
+    Button takePhoto, bt_getNumber, bt_makeCall;
+    String recognizedText;
 
+    private String strCaptureFilePath = Environment
+            .getExternalStorageDirectory() + "/DCIM/Camera/";// 保存图像的路径
+
+    private String strCaptureFile = strCaptureFilePath + "1.jpg";
+
+    private String DATA_PATH = Environment.getExternalStorageDirectory().toString();
 
     int screenWidth, screenHeight;
     AutoFocusCallback autoFocusCallback;
@@ -71,8 +155,9 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Se
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        //
+
 //set sensor
-        sensorManager = (SensorManager) this.getSystemService(this.SENSOR_SERVICE);
 
         //set full screen
         //requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -90,49 +175,107 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Se
         surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
         surfaceView.setZOrderOnTop(true);
 
+        bt = (Button) findViewById(R.id.button2);
+
         surfaceHolder = surfaceView.getHolder();
         // 为srfaceHolder添加一个回调监听器
         surfaceHolder.addCallback(this);
         // 设置surface不需要自己的维护缓存区
         surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
-        jpegCallback = new PictureCallback() {
-            @Override
-            public void onPictureTaken(byte[] data, Camera camera) {
-                FileOutputStream outStream = null;
-                try {
-                    outStream = new FileOutputStream(String.format("/sdcard/%d.jpg", System.currentTimeMillis()));
-                    outStream.write(data);
-                    outStream.close();
-                }
-                catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
-                finally {
-                }
-                Toast.makeText(getApplicationContext(), "Picture Saved", Toast.LENGTH_LONG).show();
-                refreshCamera();
-            }
-        };
         autoFocusCallback = new Camera.AutoFocusCallback() {
             public void onAutoFocus(boolean success, Camera camera) {
                 // TODO Auto-generated method stub
                 if(success){
                     camera.setOneShotPreviewCallback(null);
-                    Toast.makeText(getApplicationContext(),"autofocus", Toast.LENGTH_SHORT).show();
+
+
+
+                    //Toast.makeText(getApplicationContext(),"autofocus", Toast.LENGTH_SHORT).show()
+
+
                 }
             }
         };
 
-    }
 
-    public void captureImage(View v) throws IOException {
-        camera.takePicture(null, null, jpegCallback);
-    }
 
+    }
+    private ShutterCallback shutterCallback = new ShutterCallback() {
+        public void onShutter() {
+            /* 按下快门瞬间会调用这里的程序 */
+        }
+    };
+
+    private PictureCallback rawCallback = new PictureCallback() {
+        public void onPictureTaken(byte[] _data, Camera _camera) {
+            /* 要处理raw data?写?否 */
+        }
+    };
+
+    //在takepicture中调用的回调方法之一，接收jpeg格式的图像
+    private PictureCallback jpegCallback = new PictureCallback() {
+        public void onPictureTaken(byte[] _data, Camera _camera) {
+
+
+            /*
+             * if (Environment.getExternalStorageState().equals(
+             * Environment.MEDIA_MOUNTED)) // 判断SD卡是否存在，并且可以可以读写 {
+             *
+             * } else { Toast.makeText(EX07_16.this, "SD卡不存在或写保护",
+             * Toast.LENGTH_LONG) .show(); }
+             */
+            // Log.w("============", _data[55] + "");
+            FileOutputStream out = null;
+            try {
+                out = new FileOutputStream(strCaptureFile);
+                out.write(_data);
+                out.close();
+               // refreshCamera();
+                Toast.makeText(getApplicationContext(), strCaptureFile, Toast.LENGTH_LONG).show();
+
+               // new parseImageAsync().execute(strCaptureFile);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            refreshCamera();
+        }
+    };
+    public void takePhoto(View v) throws IOException {
+        camera.takePicture(shutterCallback, rawCallback, jpegCallback);
+
+        // bt.setText(s);
+    }
+    public void getNum(View v) throws IOException {
+        //new parseImageAsync().execute(strCaptureFile);
+        TessBaseAPI baseApi = new TessBaseAPI();
+        baseApi.setDebug(false);
+        baseApi.init(DATA_PATH, "eng");
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+
+        String test = strCaptureFilePath + "test.jpg";
+        Bitmap bitmap = BitmapFactory.decodeFile(test, options);
+
+        baseApi.setImage(bitmap);
+
+        recognizedText = baseApi.getUTF8Text();
+
+        Toast.makeText(getApplicationContext(), recognizedText, Toast.LENGTH_LONG).show();
+
+        bt_makeCall = (Button) findViewById(R.id.button3);
+
+        bt_makeCall.setText(recognizedText);
+
+        baseApi.end();
+    }
+    public void makeCall(View v) throws IOException {
+        Intent phoneIntent = new Intent(Intent.ACTION_CALL);
+        phoneIntent.setData(Uri.parse("tel:" + recognizedText));
+        startActivity(phoneIntent);
+    }
     public void refreshCamera() {
         if (surfaceHolder.getSurface() == null) {
             return;
@@ -157,6 +300,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Se
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
     }
 
     @Override
@@ -195,7 +339,7 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Se
 
         Camera.Parameters param;
         param = camera.getParameters();
-        param.setPreviewSize(600, 800);
+        param.setPreviewSize(600,800);
         //rotate 180
         param.setRotation(180);
 
@@ -226,35 +370,20 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback, Se
         camera = null;
     }
 
-
-    @Override
-    protected void onResume()
-    {
-        super.onResume();
-        // 为系统的加速度传感器注册监听器
-        sensorManager.registerListener(this,
-                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_GAME);
-    }
-
-    @Override
-    protected void onStop()
-    {
-        // 取消注册
-        sensorManager.unregisterListener(this);
-        super.onStop();
-    }
-
-    public void onSensorChanged(SensorEvent event) {
-        //Toast.makeText(getApplicationContext(),"sensor Changed", Toast.LENGTH_SHORT).show();
-        if (camera != null) {
-            // 控制摄像头自动对焦后才拍摄
-            camera.autoFocus(autoFocusCallback);
-        }
-    }
-
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
         // TODO Auto-generated method stub
 
     }
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {//屏幕触摸事件
+
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {//按下时自动对焦
+            camera.autoFocus(autoFocusCallback);
+
+        }
+        return true;
+    }
+
+
+
 }

@@ -10,6 +10,8 @@ android {
         targetSdkVersion 19
         versionCode 1
         versionName "1.0"
+       // multiDexEnabled true
+
     }
     buildTypes {
         release {
@@ -17,11 +19,20 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    /*
+    sourceSets {
+        main() {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+    */
 }
+
+
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile group: 'com.asprise.ocr',name: 'java-ocr-api', version: '[15,)'
     testCompile 'junit:junit:4.12'
+    compile 'com.rmtheis:tess-two:6.0.2'
     compile 'com.android.support:appcompat-v7:19.1.0'
 }
